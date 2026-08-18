@@ -20,9 +20,20 @@ const defaultWeapon = {
     name: "小刀",
     attackRange: 70,
     attackWidth: 46,
-    attackCooldown: 500
+    attackSpeed: 0.25,
+    attackCooldown: 250
+};
+
+// 默認職業：刺客
+const defaultClass = {
+    id: "assassin",
+    name: "刺客",
+    skillName: "飛鏢突襲",
+    dashRange: 240,
+    dartCount: 10,
+    healPerDart: 20
 };
 
 const combatConfig = {
-    attackCooldown: 500
+    attackCooldown: 250
 };
