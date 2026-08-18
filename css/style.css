@@ -49,17 +49,22 @@ body {
 }
 
 /* =========================
-   虛擬搖桿
+   自由虛擬搖桿
+   只在畫面左下 1/4 啟動
 ========================= */
 
 #joystick {
     position: absolute;
 
-    left: 40px;
-    bottom: 40px;
+    /* 搖桿本體位置由 JS 依照第一次觸碰位置決定 */
+    left: 0;
+    top: 0;
 
     width: 140px;
     height: 140px;
+
+    margin-left: -70px;
+    margin-top: -70px;
 
     border-radius: 50%;
 
@@ -69,6 +74,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+#joystick.active {
+    opacity: 1;
 }
 
 #joystick-knob {
@@ -96,7 +109,7 @@ body {
     position: absolute;
 
     right: 50px;
-    bottom: 50px;
+    bottom: 115px;
 
     width: 100px;
     height: 100px;
@@ -123,4 +136,11 @@ body {
 
 #attack-button:active {
     transform: scale(0.88);
+}
+
+/* 手機橫向時稍微提高普攻按鍵 */
+@media (orientation: landscape) {
+    #attack-button {
+        bottom: 80px;
+    }
 }
