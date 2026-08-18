@@ -14,7 +14,15 @@ const dummyStats = {
     moveSpeed: 0
 };
 
+// 默認武器：小刀
+const defaultWeapon = {
+    id: "knife",
+    name: "小刀",
+    attackRange: 70,
+    attackWidth: 46,
+    attackCooldown: 500
+};
+
 const combatConfig = {
-    attackRange: 150,
     attackCooldown: 500
 };
