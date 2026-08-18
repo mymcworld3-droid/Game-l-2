@@ -9,6 +9,8 @@
 <body>
     <div id="game">
         <div id="game-world">
+            <div id="skill-target"></div>
+
             <div id="player">
                 <div id="attack-range"></div>
                 <div id="knife" aria-hidden="true"></div>
@@ -27,7 +29,10 @@
             <div id="joystick-knob"></div>
         </div>
 
-        <button id="attack-button" type="button">⚔</button>
+        <div id="combat-controls">
+            <button id="skill-button" type="button" aria-label="刺客技能">刺</button>
+            <button id="attack-button" type="button" aria-label="普通攻擊">⚔</button>
+        </div>
     </div>
 
     <script src="./js/gameData.js"></script>
