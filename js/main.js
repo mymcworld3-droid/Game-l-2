@@ -17,12 +17,14 @@ let playerY = window.innerHeight / 2;
 let lastFrameTime = performance.now();
 let facingDirection = "right";
 
+// 移速數值以 0.1 為實際移動單位：650 = 65 px/s
+const MOVE_SPEED_UNIT = 0.1;
+
 function updatePlayer() {
     player.style.left = `${playerX}px`;
     player.style.top = `${playerY}px`;
 }
 
-// 角色本體永遠不旋轉；只有左右面向與小刀方向改變
 function setFacingDirection(direction) {
     facingDirection = direction;
     if (direction === "left") {
@@ -48,9 +50,6 @@ function updateDummyPosition() {
     dummy.style.top = `${dummyY()}px`;
 }
 
-// =========================
-// 自由虛擬搖桿：只在左下 1/4 啟動
-// =========================
 let joystickActive = false;
 let joystickX = 0;
 let joystickY = 0;
@@ -139,16 +138,15 @@ document.addEventListener("mouseup", () => {
     if (joystickActive) resetJoystick();
 });
 
-// =========================
-// 玩家移動
-// =========================
 function gameLoop(now) {
     const deltaTime = Math.min((now - lastFrameTime) / 1000, 0.05);
     lastFrameTime = now;
 
     if (joystickActive && !skillDragging) {
-        playerX += joystickX * playerStats.moveSpeed * deltaTime;
-        playerY += joystickY * playerStats.moveSpeed * deltaTime;
+        // moveSpeed 以 0.1 為單位，因此 650 實際為 65 px/s
+        const actualMoveSpeed = playerStats.moveSpeed * MOVE_SPEED_UNIT;
+        playerX += joystickX * actualMoveSpeed * deltaTime;
+        playerY += joystickY * actualMoveSpeed * deltaTime;
         playerX = Math.max(25, Math.min(window.innerWidth - 25, playerX));
         playerY = Math.max(25, Math.min(window.innerHeight - 25, playerY));
         if (joystickX < -0.05) setFacingDirection("left");
@@ -185,9 +183,6 @@ function showHealNumber(amount) {
     setTimeout(() => number.remove(), 800);
 }
 
-// =========================
-// 小刀：距離 <= 70 即可攻擊
-// =========================
 function isTargetInKnifeRange(targetX, targetY) {
     const dx = targetX - playerX;
     const dy = targetY - playerY;
@@ -249,9 +244,6 @@ attackButton.addEventListener("mousedown", (event) => {
     attack();
 });
 
-// =========================
-// 刺客技能：拖曳指定位置 -> 位移 -> 10 飛鏢向四周發射
-// =========================
 let skillDragging = false;
 let skillPointerId = null;
 let skillStartX = 0;
@@ -265,10 +257,7 @@ function clampSkillTarget(x, y) {
     const distance = Math.sqrt(dx * dx + dy * dy);
     if (distance <= defaultClass.dashRange) return { x, y };
     const scale = defaultClass.dashRange / distance;
-    return {
-        x: skillStartX + dx * scale,
-        y: skillStartY + dy * scale
-    };
+    return { x: skillStartX + dx * scale, y: skillStartY + dy * scale };
 }
 
 function updateSkillTarget(x, y) {
@@ -295,13 +284,11 @@ function endSkillDrag() {
     skillPointerId = null;
     skillButton.classList.remove("dragging");
     skillTarget.classList.remove("active");
-
     playerX = skillTargetX;
     playerY = skillTargetY;
     playerX = Math.max(25, Math.min(window.innerWidth - 25, playerX));
     playerY = Math.max(25, Math.min(window.innerHeight - 25, playerY));
     updatePlayer();
-
     fireAssassinDarts();
 }
 
@@ -312,7 +299,6 @@ function createDart(angle) {
     dart.style.top = `${playerY}px`;
     dart.style.setProperty("--dart-angle", `${angle}rad`);
     gameWorld.appendChild(dart);
-
     requestAnimationFrame(() => dart.classList.add("fly"));
     setTimeout(() => dart.remove(), 420);
 }
@@ -331,20 +317,15 @@ function pointToSegmentDistance(px, py, ax, ay, bx, by) {
 function fireAssassinDarts() {
     let hitCount = 0;
     const dartLength = 190;
-
     for (let i = 0; i < defaultClass.dartCount; i++) {
         const angle = (Math.PI * 2 * i) / defaultClass.dartCount;
         createDart(angle);
-
         if (dummyStats.health > 0) {
             const endX = playerX + Math.cos(angle) * dartLength;
             const endY = playerY + Math.sin(angle) * dartLength;
-            const distance = pointToSegmentDistance(dummyX(), dummyY(), playerX, playerY, endX, endY);
-            if (distance <= 28) hitCount++;
+            if (pointToSegmentDistance(dummyX(), dummyY(), playerX, playerY, endX, endY) <= 28) hitCount++;
         }
     }
-
-    // 飛鏢越集中命中同一目標，回復越多生命
     if (hitCount > 0) {
         const heal = Math.min(hitCount * defaultClass.healPerDart, playerStats.maxHealth - playerStats.health);
         playerStats.health += heal;
