@@ -2,6 +2,8 @@ const joystick = document.getElementById("joystick");
 const knob = document.getElementById("joystick-knob");
 const player = document.getElementById("player");
 const attackButton = document.getElementById("attack-button");
+const knife = document.getElementById("knife");
+const attackRange = document.getElementById("attack-range");
 const dummy = document.getElementById("dummy");
 const dummyBody = document.getElementById("dummy-body");
 const dummyHpBar = document.getElementById("dummy-hp-bar");
@@ -16,9 +18,18 @@ let playerX = window.innerWidth / 2;
 let playerY = window.innerHeight / 2;
 let lastFrameTime = performance.now();
 
+// 玩家面向角度：0 = 向右
+let playerFacingAngle = 0;
+
 function updatePlayer() {
     player.style.left = `${playerX}px`;
     player.style.top = `${playerY}px`;
+}
+
+function setPlayerFacing(angle) {
+    playerFacingAngle = angle;
+    knife.style.transform = `translateY(-50%) rotate(${angle}rad)`;
+    attackRange.style.transform = `translateY(-50%) rotate(${angle}rad)`;
 }
 
 // =========================
@@ -49,10 +60,7 @@ const knobRadius = 35;
 const maxDistance = joystickRadius - knobRadius;
 
 function isInLeftBottomQuarter(clientX, clientY) {
-    return (
-        clientX <= window.innerWidth / 2 &&
-        clientY >= window.innerHeight / 2
-    );
+    return clientX <= window.innerWidth / 2 && clientY >= window.innerHeight / 2;
 }
 
 function startJoystick(clientX, clientY, pointerId = null) {
@@ -60,11 +68,9 @@ function startJoystick(clientX, clientY, pointerId = null) {
 
     joystickActive = true;
     joystickPointerId = pointerId;
-
     joystick.style.left = `${clientX}px`;
     joystick.style.top = `${clientY}px`;
     joystick.classList.add("active");
-
     moveJoystick(clientX, clientY);
     return true;
 }
@@ -74,7 +80,6 @@ function moveJoystick(clientX, clientY) {
 
     const centerX = parseFloat(joystick.style.left);
     const centerY = parseFloat(joystick.style.top);
-
     let dx = clientX - centerX;
     let dy = clientY - centerY;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -98,21 +103,15 @@ function resetJoystick() {
     joystick.classList.remove("active");
 }
 
-// =========================
-// Touch 搖桿
-// =========================
-
 document.addEventListener("touchstart", (event) => {
     if (event.target === attackButton) return;
     if (joystickActive) return;
-
     const touch = event.changedTouches[0];
     startJoystick(touch.clientX, touch.clientY, touch.identifier);
 }, { passive: false });
 
 document.addEventListener("touchmove", (event) => {
     if (!joystickActive) return;
-
     for (const touch of event.changedTouches) {
         if (touch.identifier === joystickPointerId) {
             event.preventDefault();
@@ -124,7 +123,6 @@ document.addEventListener("touchmove", (event) => {
 
 document.addEventListener("touchend", (event) => {
     if (!joystickActive) return;
-
     for (const touch of event.changedTouches) {
         if (touch.identifier === joystickPointerId) {
             resetJoystick();
@@ -132,10 +130,6 @@ document.addEventListener("touchend", (event) => {
         }
     }
 }, { passive: false });
-
-// =========================
-// 滑鼠測試
-// =========================
 
 document.addEventListener("mousedown", (event) => {
     if (event.target === attackButton) return;
@@ -168,6 +162,12 @@ function gameLoop(now) {
         const halfPlayer = 25;
         playerX = Math.max(halfPlayer, Math.min(window.innerWidth - halfPlayer, playerX));
         playerY = Math.max(halfPlayer, Math.min(window.innerHeight - halfPlayer, playerY));
+
+        // 移動時，角色自然面向移動方向
+        if (Math.abs(joystickX) > 0.05 || Math.abs(joystickY) > 0.05) {
+            setPlayerFacing(Math.atan2(joystickY, joystickX));
+        }
+
         updatePlayer();
     }
 
@@ -192,55 +192,97 @@ function showDamageNumber(damage) {
     const number = document.createElement("div");
     number.className = "damage-number";
     number.textContent = `-${damage}`;
-
-    // 飄字從 Dummy 上方開始
     number.style.left = `${dummyX()}px`;
     number.style.top = `${dummyY() - 65}px`;
-
     gameWorld.appendChild(number);
 
-    setTimeout(() => {
-        number.remove();
-    }, 700);
+    setTimeout(() => number.remove(), 700);
 }
 
 // =========================
-// 攻擊冷卻
-// 0.5 秒只能攻擊一次
+// 小刀攻擊判定
+// 70 長 x 46 寬的矩形，會跟著玩家面向旋轉
+// =========================
+
+function isTargetInKnifeRange(targetX, targetY) {
+    const dx = targetX - playerX;
+    const dy = targetY - playerY;
+
+    // 將目標座標轉換到「小刀朝向的本地座標」
+    const cos = Math.cos(playerFacingAngle);
+    const sin = Math.sin(playerFacingAngle);
+
+    const localX = dx * cos + dy * sin;
+    const localY = -dx * sin + dy * cos;
+
+    // 小刀從玩家中心向前延伸 70，寬度 46
+    const halfPlayer = 25;
+    const halfWidth = defaultWeapon.attackWidth / 2;
+
+    return (
+        localX >= halfPlayer &&
+        localX <= halfPlayer + defaultWeapon.attackRange &&
+        Math.abs(localY) <= halfWidth + 36
+    );
+}
+
+// =========================
+// 自動選取攻擊目標
+// 現階段只有 Dummy，因此直接選 Dummy
+// =========================
+
+function findAttackTarget() {
+    if (dummyStats.health <= 0) return null;
+
+    if (isTargetInKnifeRange(dummyX(), dummyY())) {
+        return {
+            x: dummyX(),
+            y: dummyY(),
+            body: dummyBody
+        };
+    }
+
+    return null;
+}
+
+// =========================
+// 攻擊冷卻 + 自動面向 + 小刀攻擊
 // =========================
 
 let lastAttackTime = -Infinity;
-
-function isDummyInAttackRange() {
-    const dx = playerX - dummyX();
-    const dy = playerY - dummyY();
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    // 玩家半徑 + Dummy 約半徑後，再使用攻擊範圍判定
-    return distance <= combatConfig.attackRange + 45;
-}
+let knifeAnimating = false;
 
 function attack() {
     const now = performance.now();
 
-    if (now - lastAttackTime < combatConfig.attackCooldown) {
+    if (now - lastAttackTime < defaultWeapon.attackCooldown) {
         return;
     }
 
     lastAttackTime = now;
 
-    // 攻擊動畫
-    player.style.transform = "translate(-50%, -50%) scale(1.3)";
-    setTimeout(() => {
-        player.style.transform = "translate(-50%, -50%) scale(1)";
-    }, 100);
+    const target = findAttackTarget();
 
-    // Dummy 已死亡，不再受到攻擊
-    if (dummyStats.health <= 0) return;
+    // 有目標：自動面向目標
+    if (target) {
+        const angle = Math.atan2(target.y - playerY, target.x - playerX);
+        setPlayerFacing(angle);
+    }
 
-    // 超出攻擊距離：只有揮空，不造成傷害
-    if (!isDummyInAttackRange()) {
-        console.log("普攻揮空：Dummy 不在攻擊範圍內");
+    // 小刀揮擊動畫
+    if (!knifeAnimating) {
+        knifeAnimating = true;
+        knife.classList.add("knife-swing");
+
+        setTimeout(() => {
+            knife.classList.remove("knife-swing");
+            knifeAnimating = false;
+        }, 160);
+    }
+
+    // 沒有目標或不在矩形範圍內：揮空
+    if (!target) {
+        console.log("小刀揮空：攻擊範圍內沒有目標");
         return;
     }
 
@@ -250,18 +292,16 @@ function attack() {
     updateDummyHealth();
     showDamageNumber(damage);
 
-    // Dummy 受擊效果
     dummyBody.style.transform = "translateX(-50%) scale(1.12)";
     setTimeout(() => {
         dummyBody.style.transform = "translateX(-50%) scale(1)";
     }, 100);
 
-    console.log(`造成 ${damage} 傷害，Dummy HP：${dummyStats.health}/${dummyStats.maxHealth}`);
+    console.log(`小刀命中 Dummy，造成 ${damage} 傷害，HP：${dummyStats.health}/${dummyStats.maxHealth}`);
 
     if (dummyStats.health <= 0) {
         dummyBody.textContent = "DEAD";
         dummyBody.style.opacity = "0.45";
-        console.log("Dummy死亡");
     }
 }
 
@@ -277,10 +317,6 @@ attackButton.addEventListener("mousedown", (event) => {
     attack();
 });
 
-// =========================
-// 視窗大小改變
-// =========================
-
 window.addEventListener("resize", () => {
     playerX = Math.max(25, Math.min(window.innerWidth - 25, playerX));
     playerY = Math.max(25, Math.min(window.innerHeight - 25, playerY));
@@ -295,4 +331,5 @@ window.addEventListener("resize", () => {
 updatePlayer();
 updateDummyPosition();
 updateDummyHealth();
+setPlayerFacing(0);
 requestAnimationFrame(gameLoop);
