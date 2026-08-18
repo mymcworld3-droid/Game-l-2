@@ -14,16 +14,30 @@ let playerX = window.innerWidth / 2;
 let playerY = window.innerHeight / 2;
 let lastFrameTime = performance.now();
 let playerFacingAngle = 0;
+let facingDirection = "right";
 
 function updatePlayer() {
     player.style.left = `${playerX}px`;
     player.style.top = `${playerY}px`;
 }
 
-function setPlayerFacing(angle) {
-    playerFacingAngle = angle;
-    knife.style.transform = `translateY(-50%) rotate(${angle}rad)`;
-    attackRange.style.transform = `translateY(-50%) rotate(${angle}rad)`;
+// 角色本體永遠不旋轉；只有小刀依左右方向改變角度
+function setFacingDirection(direction) {
+    facingDirection = direction;
+
+    if (direction === "left") {
+        player.style.transform = "translate(-50%, -50%) scaleX(-1)";
+        knife.style.transform = "translateY(-50%) scaleX(-1) rotate(45deg)";
+        attackRange.style.transform = "translateY(-50%) scaleX(-1)";
+    } else {
+        player.style.transform = "translate(-50%, -50%) scaleX(1)";
+        knife.style.transform = "translateY(-50%) rotate(-45deg)";
+        attackRange.style.transform = "translateY(-50%)";
+    }
+}
+
+function faceTarget(targetX) {
+    setFacingDirection(targetX < playerX ? "left" : "right");
 }
 
 const dummyX = () => window.innerWidth * 0.70;
@@ -144,9 +158,9 @@ function gameLoop(now) {
         playerX = Math.max(25, Math.min(window.innerWidth - 25, playerX));
         playerY = Math.max(25, Math.min(window.innerHeight - 25, playerY));
 
-        if (Math.abs(joystickX) > 0.05 || Math.abs(joystickY) > 0.05) {
-            setPlayerFacing(Math.atan2(joystickY, joystickX));
-        }
+        // 只判定左右，角色本體不旋轉
+        if (joystickX < -0.05) setFacingDirection("left");
+        else if (joystickX > 0.05) setFacingDirection("right");
 
         updatePlayer();
     }
@@ -170,16 +184,11 @@ function showDamageNumber(damage) {
     setTimeout(() => number.remove(), 700);
 }
 
-// =========================
-// 小刀攻擊距離
-// 規則：只看「玩家中心到目標中心」的距離 <= 70
-// 不再要求目標位於長方形內，也不受玩家目前面向限制
-// =========================
+// 小刀只要距離玩家 70 以內即可攻擊
 function isTargetInKnifeRange(targetX, targetY) {
     const dx = targetX - playerX;
     const dy = targetY - playerY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    return distance <= defaultWeapon.attackRange;
+    return Math.sqrt(dx * dx + dy * dy) <= defaultWeapon.attackRange;
 }
 
 function findAttackTarget() {
@@ -207,11 +216,8 @@ function attack() {
 
     const target = findAttackTarget();
 
-    // 只要目標在 70 距離內，就自動面向目標
-    if (target) {
-        const angle = Math.atan2(target.y - playerY, target.x - playerX);
-        setPlayerFacing(angle);
-    }
+    // 70 距離內：自動判斷左右並面向目標
+    if (target) faceTarget(target.x);
 
     if (!knifeAnimating) {
         knifeAnimating = true;
@@ -219,6 +225,7 @@ function attack() {
         setTimeout(() => {
             knife.classList.remove("knife-swing");
             knifeAnimating = false;
+            setFacingDirection(facingDirection);
         }, 160);
     }
 
@@ -266,5 +273,5 @@ window.addEventListener("resize", () => {
 updatePlayer();
 updateDummyPosition();
 updateDummyHealth();
-setPlayerFacing(0);
+setFacingDirection("right");
 requestAnimationFrame(gameLoop);
