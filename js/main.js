@@ -36,19 +36,34 @@ function setWeaponDirection(joystickAngle) {
 
 function applyWeaponTransform(orbitAngle) {
     const isLeft = Math.cos(orbitAngle) < 0;
-    const correctedOrbit = isLeft ? orbitAngle + LEFT_WEAPON_ROTATION : orbitAngle;
+    
+    // 修正：不再透過加角度來處理左邊，直接使用原本正確的軌道角度
+    const correctedOrbit = orbitAngle;
     const bladeAngle = correctedOrbit + WEAPON_FACE_OFFSET;
 
-    // 小刀以玩家為旋轉中心；向左時位置與刀身方向一起翻轉 180°。
+    // --- 小刀設定 ---
     knife.style.left = `${playerX}px`;
     knife.style.top = `${playerY}px`;
     knife.style.transformOrigin = "0 50%";
-    knife.style.transform = `translateY(-50%) rotate(${bladeAngle}rad)`;
+    
+    // 修正：向左時，維持原本旋轉角度，並加上 scaleY(-1) 讓貼圖上下翻轉，徹底解決左上變左下的問題
+    if (isLeft) {
+        knife.style.transform = `translateY(-50%) rotate(${bladeAngle}rad) scaleY(-1)`;
+    } else {
+        knife.style.transform = `translateY(-50%) rotate(${bladeAngle}rad)`;
+    }
 
+    // --- 攻擊範圍設定 ---
     attackRange.style.left = `${playerX}px`;
     attackRange.style.top = `${playerY}px`;
     attackRange.style.transformOrigin = "0 50%";
-    attackRange.style.transform = `translateY(-50%) rotate(${correctedOrbit}rad)`;
+    
+    // 修正：攻擊範圍也必須同步進行左邊的 scaleY(-1) 鏡像翻轉
+    if (isLeft) {
+        attackRange.style.transform = `translateY(-50%) rotate(${correctedOrbit}rad) scaleY(-1)`;
+    } else {
+        attackRange.style.transform = `translateY(-50%) rotate(${correctedOrbit}rad)`;
+    }
 }
 
 function setFacingDirection(direction) {
