@@ -12,6 +12,12 @@ func _ready():
 
 func _physics_process(delta):
     var input_2d := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+    var joysticks := get_tree().get_nodes_in_group("virtual_joystick")
+    if joysticks.size() > 0:
+        var joystick_input: Vector2 = joysticks[0].get_value()
+        if joystick_input.length() > 0.01:
+            input_2d = joystick_input
+
     var direction := Vector3(input_2d.x, 0.0, input_2d.y)
     velocity.x = direction.x * speed
     velocity.z = direction.z * speed
