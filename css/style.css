@@ -1,0 +1,126 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    touch-action: none;
+}
+
+body {
+    background: #111;
+    font-family: Arial, sans-serif;
+}
+
+#game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at center, #31552d, #162316);
+}
+
+/* 遊戲世界 */
+#game-world {
+    position: absolute;
+    inset: 0;
+}
+
+/* 玩家 */
+#player {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    width: 50px;
+    height: 50px;
+
+    transform: translate(-50%, -50%);
+
+    background: #4da6ff;
+    border: 4px solid white;
+    border-radius: 50%;
+}
+
+/* =========================
+   虛擬搖桿
+========================= */
+
+#joystick {
+    position: absolute;
+
+    left: 40px;
+    bottom: 40px;
+
+    width: 140px;
+    height: 140px;
+
+    border-radius: 50%;
+
+    background: rgba(255, 255, 255, 0.15);
+    border: 3px solid rgba(255, 255, 255, 0.4);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#joystick-knob {
+    width: 70px;
+    height: 70px;
+
+    border-radius: 50%;
+
+    background: rgba(255, 255, 255, 0.45);
+    border: 3px solid rgba(255, 255, 255, 0.8);
+
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+}
+
+/* =========================
+   普攻按鍵
+========================= */
+
+#attack-button {
+    position: absolute;
+
+    right: 50px;
+    bottom: 50px;
+
+    width: 100px;
+    height: 100px;
+
+    border-radius: 50%;
+
+    border: 4px solid rgba(255, 255, 255, 0.8);
+
+    background: rgba(220, 50, 50, 0.8);
+
+    color: white;
+
+    font-size: 42px;
+
+    cursor: pointer;
+
+    user-select: none;
+    -webkit-user-select: none;
+
+    touch-action: manipulation;
+
+    transition: transform 0.08s;
+}
+
+#attack-button:active {
+    transform: scale(0.88);
+}
