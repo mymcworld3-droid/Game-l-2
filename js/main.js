@@ -16,8 +16,6 @@ let playerX = window.innerWidth / 2;
 let playerY = window.innerHeight / 2;
 let lastFrameTime = performance.now();
 let facingDirection = "right";
-
-// 移速數值以 0.1 為實際移動單位：650 = 65 px/s
 const MOVE_SPEED_UNIT = 0.1;
 
 function updatePlayer() {
@@ -25,26 +23,29 @@ function updatePlayer() {
     player.style.top = `${playerY}px`;
 }
 
+// 武器方向跟隨搖桿：使用完整 360° 方向。
+// 角色本體仍只左右翻轉，不會跟著旋轉。
+function setWeaponDirection(angle) {
+    knife.style.transform = `translateY(-50%) rotate(${angle}rad)`;
+    attackRange.style.transform = `translateY(-50%) rotate(${angle}rad)`;
+}
+
 function setFacingDirection(direction) {
     facingDirection = direction;
     if (direction === "left") {
         player.style.transform = "translate(-50%, -50%) scaleX(-1)";
-        knife.style.transform = "translateY(-50%) scaleX(-1) rotate(45deg)";
-        attackRange.style.transform = "translateY(-50%) scaleX(-1)";
     } else {
         player.style.transform = "translate(-50%, -50%) scaleX(1)";
-        knife.style.transform = "translateY(-50%) rotate(-45deg)";
-        attackRange.style.transform = "translateY(-50%)";
     }
 }
 
-function faceTarget(targetX) {
+function faceTarget(targetX, targetY = playerY) {
     setFacingDirection(targetX < playerX ? "left" : "right");
+    setWeaponDirection(Math.atan2(targetY - playerY, targetX - playerX));
 }
 
 const dummyX = () => window.innerWidth * 0.70;
 const dummyY = () => window.innerHeight * 0.50;
-
 function updateDummyPosition() {
     dummy.style.left = `${dummyX()}px`;
     dummy.style.top = `${dummyY()}px`;
@@ -87,6 +88,14 @@ function moveJoystick(x, y) {
     knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
     joystickX = dx / maxDistance;
     joystickY = dy / maxDistance;
+
+    // 只要搖桿有輸入，武器就同步指向搖桿方向。
+    if (distance > 0.05) {
+        const angle = Math.atan2(joystickY, joystickX);
+        setWeaponDirection(angle);
+        if (joystickX < -0.05) setFacingDirection("left");
+        else if (joystickX > 0.05) setFacingDirection("right");
+    }
 }
 
 function resetJoystick() {
@@ -103,7 +112,6 @@ document.addEventListener("touchstart", (event) => {
     const touch = event.changedTouches[0];
     startJoystick(touch.clientX, touch.clientY, touch.identifier);
 }, { passive: false });
-
 document.addEventListener("touchmove", (event) => {
     if (!joystickActive) return;
     for (const touch of event.changedTouches) {
@@ -114,7 +122,6 @@ document.addEventListener("touchmove", (event) => {
         }
     }
 }, { passive: false });
-
 document.addEventListener("touchend", (event) => {
     if (!joystickActive) return;
     for (const touch of event.changedTouches) {
@@ -124,16 +131,13 @@ document.addEventListener("touchend", (event) => {
         }
     }
 }, { passive: false });
-
 document.addEventListener("mousedown", (event) => {
     if (event.target === attackButton || event.target === skillButton || joystickActive) return;
     startJoystick(event.clientX, event.clientY);
 });
-
 document.addEventListener("mousemove", (event) => {
     if (joystickActive) moveJoystick(event.clientX, event.clientY);
 });
-
 document.addEventListener("mouseup", () => {
     if (joystickActive) resetJoystick();
 });
@@ -141,16 +145,12 @@ document.addEventListener("mouseup", () => {
 function gameLoop(now) {
     const deltaTime = Math.min((now - lastFrameTime) / 1000, 0.05);
     lastFrameTime = now;
-
     if (joystickActive && !skillDragging) {
-        // moveSpeed 以 0.1 為單位，因此 650 實際為 65 px/s
         const actualMoveSpeed = playerStats.moveSpeed * MOVE_SPEED_UNIT;
         playerX += joystickX * actualMoveSpeed * deltaTime;
         playerY += joystickY * actualMoveSpeed * deltaTime;
         playerX = Math.max(25, Math.min(window.innerWidth - 25, playerX));
         playerY = Math.max(25, Math.min(window.innerHeight - 25, playerY));
-        if (joystickX < -0.05) setFacingDirection("left");
-        else if (joystickX > 0.05) setFacingDirection("right");
         updatePlayer();
     }
     requestAnimationFrame(gameLoop);
@@ -161,7 +161,6 @@ function updateDummyHealth() {
     dummyHpBar.style.width = `${percentage}%`;
     dummyHpText.textContent = `${dummyStats.health} / ${dummyStats.maxHealth}`;
 }
-
 function showDamageNumber(damage) {
     const number = document.createElement("div");
     number.className = "damage-number";
@@ -171,7 +170,6 @@ function showDamageNumber(damage) {
     gameWorld.appendChild(number);
     setTimeout(() => number.remove(), 700);
 }
-
 function showHealNumber(amount) {
     if (amount <= 0) return;
     const number = document.createElement("div");
@@ -182,13 +180,11 @@ function showHealNumber(amount) {
     gameWorld.appendChild(number);
     setTimeout(() => number.remove(), 800);
 }
-
 function isTargetInKnifeRange(targetX, targetY) {
     const dx = targetX - playerX;
     const dy = targetY - playerY;
     return Math.sqrt(dx * dx + dy * dy) <= defaultWeapon.attackRange;
 }
-
 function findAttackTarget() {
     if (dummyStats.health <= 0) return null;
     if (!isTargetInKnifeRange(dummyX(), dummyY())) return null;
@@ -197,14 +193,13 @@ function findAttackTarget() {
 
 let lastAttackTime = -Infinity;
 let knifeAnimating = false;
-
 function attack() {
     const now = performance.now();
     if (now - lastAttackTime < defaultWeapon.attackCooldown) return;
     lastAttackTime = now;
-
     const target = findAttackTarget();
-    if (target) faceTarget(target.x);
+    // 普攻方向優先於搖桿，找到目標時自動面向目標。
+    if (target) faceTarget(target.x, target.y);
 
     if (!knifeAnimating) {
         knifeAnimating = true;
@@ -212,32 +207,28 @@ function attack() {
         setTimeout(() => {
             knife.classList.remove("knife-swing");
             knifeAnimating = false;
-            setFacingDirection(facingDirection);
+            // 沒有目標時，攻擊結束後仍保持最後搖桿方向；有目標則回到目標方向。
+            if (target) faceTarget(target.x, target.y);
         }, 160);
     }
-
     if (!target) return;
 
     const damage = Math.max(1, playerStats.attack - dummyStats.defense);
     dummyStats.health = Math.max(0, dummyStats.health - damage);
     updateDummyHealth();
     showDamageNumber(damage);
-
     dummyBody.style.transform = "translateX(-50%) scale(1.12)";
     setTimeout(() => dummyBody.style.transform = "translateX(-50%) scale(1)", 100);
-
     if (dummyStats.health <= 0) {
         dummyBody.textContent = "DEAD";
         dummyBody.style.opacity = "0.45";
     }
 }
-
 attackButton.addEventListener("touchstart", (event) => {
     event.preventDefault();
     event.stopPropagation();
     attack();
 }, { passive: false });
-
 attackButton.addEventListener("mousedown", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -250,7 +241,6 @@ let skillStartX = 0;
 let skillStartY = 0;
 let skillTargetX = 0;
 let skillTargetY = 0;
-
 function clampSkillTarget(x, y) {
     const dx = x - skillStartX;
     const dy = y - skillStartY;
@@ -259,7 +249,6 @@ function clampSkillTarget(x, y) {
     const scale = defaultClass.dashRange / distance;
     return { x: skillStartX + dx * scale, y: skillStartY + dy * scale };
 }
-
 function updateSkillTarget(x, y) {
     const target = clampSkillTarget(x, y);
     skillTargetX = target.x;
@@ -268,7 +257,6 @@ function updateSkillTarget(x, y) {
     skillTarget.style.top = `${target.y}px`;
     skillTarget.classList.add("active");
 }
-
 function beginSkillDrag(x, y, pointerId = null) {
     skillDragging = true;
     skillPointerId = pointerId;
@@ -277,21 +265,17 @@ function beginSkillDrag(x, y, pointerId = null) {
     updateSkillTarget(x, y);
     skillButton.classList.add("dragging");
 }
-
 function endSkillDrag() {
     if (!skillDragging) return;
     skillDragging = false;
     skillPointerId = null;
     skillButton.classList.remove("dragging");
     skillTarget.classList.remove("active");
-    playerX = skillTargetX;
-    playerY = skillTargetY;
-    playerX = Math.max(25, Math.min(window.innerWidth - 25, playerX));
-    playerY = Math.max(25, Math.min(window.innerHeight - 25, playerY));
+    playerX = Math.max(25, Math.min(window.innerWidth - 25, skillTargetX));
+    playerY = Math.max(25, Math.min(window.innerHeight - 25, skillTargetY));
     updatePlayer();
     fireAssassinDarts();
 }
-
 function createDart(angle) {
     const dart = document.createElement("div");
     dart.className = "assassin-dart";
@@ -302,18 +286,13 @@ function createDart(angle) {
     requestAnimationFrame(() => dart.classList.add("fly"));
     setTimeout(() => dart.remove(), 420);
 }
-
 function pointToSegmentDistance(px, py, ax, ay, bx, by) {
-    const abx = bx - ax;
-    const aby = by - ay;
-    const ab2 = abx * abx + aby * aby;
+    const abx = bx - ax, aby = by - ay, ab2 = abx * abx + aby * aby;
     if (ab2 === 0) return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2);
     const t = Math.max(0, Math.min(1, ((px - ax) * abx + (py - ay) * aby) / ab2));
-    const cx = ax + abx * t;
-    const cy = ay + aby * t;
+    const cx = ax + abx * t, cy = ay + aby * t;
     return Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
 }
-
 function fireAssassinDarts() {
     let hitCount = 0;
     const dartLength = 190;
@@ -332,14 +311,12 @@ function fireAssassinDarts() {
         showHealNumber(heal);
     }
 }
-
 function skillTouchStart(event) {
     event.preventDefault();
     event.stopPropagation();
     const touch = event.changedTouches[0];
     beginSkillDrag(touch.clientX, touch.clientY, touch.identifier);
 }
-
 function skillTouchMove(event) {
     if (!skillDragging) return;
     for (const touch of event.changedTouches) {
@@ -350,7 +327,6 @@ function skillTouchMove(event) {
         }
     }
 }
-
 function skillTouchEnd(event) {
     if (!skillDragging) return;
     for (const touch of event.changedTouches) {
@@ -361,7 +337,6 @@ function skillTouchEnd(event) {
         }
     }
 }
-
 skillButton.addEventListener("touchstart", skillTouchStart, { passive: false });
 skillButton.addEventListener("touchmove", skillTouchMove, { passive: false });
 skillButton.addEventListener("touchend", skillTouchEnd, { passive: false });
@@ -375,16 +350,15 @@ document.addEventListener("mousemove", (event) => {
 document.addEventListener("mouseup", () => {
     if (skillDragging && skillPointerId === null) endSkillDrag();
 });
-
 window.addEventListener("resize", () => {
     playerX = Math.max(25, Math.min(window.innerWidth - 25, playerX));
     playerY = Math.max(25, Math.min(window.innerHeight - 25, playerY));
     updatePlayer();
     updateDummyPosition();
 });
-
 updatePlayer();
 updateDummyPosition();
 updateDummyHealth();
 setFacingDirection("right");
+setWeaponDirection(0);
 requestAnimationFrame(gameLoop);
