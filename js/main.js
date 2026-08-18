@@ -35,35 +35,20 @@ function setWeaponDirection(joystickAngle) {
 }
 
 function applyWeaponTransform(orbitAngle) {
-    const isLeft = Math.cos(orbitAngle) < 0;
-    
-    // 修正：不再透過加角度來處理左邊，直接使用原本正確的軌道角度
+    // 白色方塊以玩家中心為旋轉中心；向左時直接用左側的軌道角度，
+    // 不再使用 scaleY(-1)，避免把物件翻到錯誤的垂直方向。
     const correctedOrbit = orbitAngle;
     const bladeAngle = correctedOrbit + WEAPON_FACE_OFFSET;
 
-    // --- 小刀設定 ---
     knife.style.left = `${playerX}px`;
     knife.style.top = `${playerY}px`;
     knife.style.transformOrigin = "0 50%";
-    
-    // 修正：向左時，維持原本旋轉角度，並加上 scaleY(-1) 讓貼圖上下翻轉，徹底解決左上變左下的問題
-    if (isLeft) {
-        knife.style.transform = `translateY(-50%) rotate(${bladeAngle}rad) scaleY(-1)`;
-    } else {
-        knife.style.transform = `translateY(-50%) rotate(${bladeAngle}rad)`;
-    }
+    knife.style.transform = `translateY(-50%) rotate(${bladeAngle}rad)`;
 
-    // --- 攻擊範圍設定 ---
     attackRange.style.left = `${playerX}px`;
     attackRange.style.top = `${playerY}px`;
     attackRange.style.transformOrigin = "0 50%";
-    
-    // 修正：攻擊範圍也必須同步進行左邊的 scaleY(-1) 鏡像翻轉
-    if (isLeft) {
-        attackRange.style.transform = `translateY(-50%) rotate(${correctedOrbit}rad) scaleY(-1)`;
-    } else {
-        attackRange.style.transform = `translateY(-50%) rotate(${correctedOrbit}rad)`;
-    }
+    attackRange.style.transform = `translateY(-50%) rotate(${correctedOrbit}rad)`;
 }
 
 function setFacingDirection(direction) {
@@ -240,10 +225,8 @@ function attack() {
     }
 
     attackAnimating = true;
-    const isLeft = Math.cos(weaponAngle) < 0;
     const attackOrbitAngle = weaponAngle + ATTACK_ORBIT_ROTATION;
-    const correctedAttackOrbit = isLeft ? attackOrbitAngle + LEFT_WEAPON_ROTATION : attackOrbitAngle;
-    const attackBladeAngle = correctedAttackOrbit + WEAPON_FACE_OFFSET + ATTACK_ORBIT_ROTATION;
+    const attackBladeAngle = attackOrbitAngle + WEAPON_FACE_OFFSET + ATTACK_ORBIT_ROTATION;
 
     knife.style.left = `${playerX}px`;
     knife.style.top = `${playerY}px`;
@@ -252,7 +235,7 @@ function attack() {
     attackRange.style.left = `${playerX}px`;
     attackRange.style.top = `${playerY}px`;
     attackRange.style.transformOrigin = "0 50%";
-    attackRange.style.transform = `translateY(-50%) rotate(${correctedAttackOrbit}rad)`;
+    attackRange.style.transform = `translateY(-50%) rotate(${attackOrbitAngle}rad)`;
 
     knife.classList.remove("knife-swing");
     void knife.offsetWidth;
@@ -297,26 +280,20 @@ let skillTargetY = playerY;
 
 function getSkillButtonCenter() {
     const rect = skillButton.getBoundingClientRect();
-    return {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-    };
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
-
 function updateSkillTargetFromDrag(x, y) {
     const dx = x - skillOriginX;
     const dy = y - skillOriginY;
     const distance = Math.sqrt(dx * dx + dy * dy);
     const maxDash = defaultClass.dashRange;
     const scale = distance > maxDash ? maxDash / distance : 1;
-
     skillTargetX = Math.max(25, Math.min(window.innerWidth - 25, playerX + dx * scale));
     skillTargetY = Math.max(25, Math.min(window.innerHeight - 25, playerY + dy * scale));
     skillTarget.style.left = `${skillTargetX}px`;
     skillTarget.style.top = `${skillTargetY}px`;
     skillTarget.classList.add("active");
 }
-
 function beginSkillDrag(x, y, pointerId = null) {
     const center = getSkillButtonCenter();
     skillOriginX = center.x;
@@ -326,7 +303,6 @@ function beginSkillDrag(x, y, pointerId = null) {
     updateSkillTargetFromDrag(x, y);
     skillButton.classList.add("dragging");
 }
-
 function endSkillDrag() {
     if (!skillDragging) return;
     skillDragging = false;
@@ -339,7 +315,6 @@ function endSkillDrag() {
     applyWeaponTransform(weaponAngle);
     fireAssassinDarts();
 }
-
 function createDart(angle) {
     const dart = document.createElement("div");
     dart.className = "assassin-dart";
@@ -375,7 +350,6 @@ function fireAssassinDarts() {
         showHealNumber(heal);
     }
 }
-
 function skillTouchStart(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -415,7 +389,6 @@ document.addEventListener("mousemove", (event) => {
 document.addEventListener("mouseup", () => {
     if (skillDragging && skillPointerId === null) endSkillDrag();
 });
-
 window.addEventListener("resize", () => {
     playerX = Math.max(25, Math.min(window.innerWidth - 25, playerX));
     playerY = Math.max(25, Math.min(window.innerHeight - 25, playerY));
@@ -423,7 +396,6 @@ window.addEventListener("resize", () => {
     updateDummyPosition();
     applyWeaponTransform(weaponAngle);
 });
-
 updatePlayer();
 updateDummyPosition();
 updateDummyHealth();
