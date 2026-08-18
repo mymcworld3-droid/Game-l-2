@@ -53,9 +53,15 @@ function applyWeaponTransform(orbitAngle) {
 
 function setFacingDirection(direction) {
     facingDirection = direction;
-    player.style.transform = direction === "left"
-        ? "translate(-50%, -50%) scaleX(-1)"
-        : "translate(-50%, -50%) scaleX(1)";
+
+    const flip = direction === "left" ? -1 : 1;
+
+    player.style.transform =
+        `translate(-50%, -50%) scaleX(${flip})`;
+
+    // 手持物跟著玩家水平翻轉
+    knife.style.scale = `${flip} 1`;
+    attackRange.style.scale = `${flip} 1`;
 }
 
 function faceTarget(targetX, targetY = playerY) {
