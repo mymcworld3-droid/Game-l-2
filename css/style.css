@@ -12,10 +12,7 @@ body {
     touch-action: none;
 }
 
-body {
-    background: #111;
-    font-family: Arial, sans-serif;
-}
+body { background: #111; font-family: Arial, sans-serif; }
 
 #game {
     position: relative;
@@ -25,12 +22,8 @@ body {
     background: radial-gradient(circle at center, #31552d, #162316);
 }
 
-#game-world {
-    position: absolute;
-    inset: 0;
-}
+#game-world { position: absolute; inset: 0; }
 
-/* 玩家 */
 #player {
     position: absolute;
     left: 50%;
@@ -44,7 +37,7 @@ body {
     z-index: 10;
 }
 
-/* 默認小刀：70 長、46 寬，會依玩家面向旋轉 */
+/* 默認小刀：70 長、46 寬，起點在玩家中心並朝向面向方向 */
 #knife {
     position: absolute;
     left: 50%;
@@ -82,7 +75,7 @@ body {
     filter: drop-shadow(1px 2px 1px rgba(0,0,0,.45));
 }
 
-/* 小刀攻擊判定範圍：70 長 x 46 寬 */
+/* 小刀 70 長 x 46 寬的矩形攻擊範圍 */
 #attack-range {
     position: absolute;
     left: 50%;
@@ -97,7 +90,17 @@ body {
     z-index: -1;
 }
 
-/* Dummy */
+/* 揮刀動畫 */
+#knife.knife-swing {
+    animation: knife-swing 160ms ease-out;
+}
+
+@keyframes knife-swing {
+    0% { transform: translateY(-50%) rotate(-20deg) scaleX(.8); }
+    45% { transform: translateY(-50%) rotate(12deg) scaleX(1.08); }
+    100% { transform: translateY(-50%) rotate(0deg) scaleX(1); }
+}
+
 #dummy {
     position: absolute;
     left: 70%;
@@ -164,7 +167,6 @@ body {
     z-index: 3;
 }
 
-/* 傷害飄字 */
 .damage-number {
     position: absolute;
     z-index: 30;
@@ -182,7 +184,6 @@ body {
     100% { opacity: 0; transform: translate(-50%, -65px) scale(1.15); }
 }
 
-/* 自由虛擬搖桿：只在左下 1/4 啟動 */
 #joystick {
     position: absolute;
     left: 0;
@@ -217,7 +218,6 @@ body {
     transform: translate(-50%, -50%);
 }
 
-/* 普攻按鍵 */
 #attack-button {
     position: absolute;
     right: 50px;
