@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/player.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/enemy.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/virtual_joystick.gd" id="4"]
 
 [sub_resource type="BoxMesh" id="BoxPlayer"]
 size = Vector3(0.9, 1.4, 0.9)
@@ -70,40 +71,32 @@ text = "HP 100 / 100"
 offset_left = 24.0
 offset_top = 55.0
 theme_override_font_sizes/font_size = 16
-text = "手機：拖曳左側移動，點右側攻擊"
+text = "左下虛擬搖桿移動｜右側按鈕攻擊"
+
+[node name="VirtualJoystick" type="Control" parent="HUD"]
+offset_left = 25.0
+offset_top = 330.0
+offset_right = 225.0
+offset_bottom = 530.0
+mouse_filter = 0
+script = ExtResource("4")
 
 [node name="Attack" type="Button" parent="HUD"]
-offset_left = 720.0
-offset_top = 520.0
-offset_right = 900.0
-offset_bottom = 650.0
+offset_left = 770.0
+offset_top = 400.0
+offset_right = 930.0
+offset_bottom = 510.0
 theme_override_font_sizes/font_size = 24
 text = "攻擊"
 
 [node name="MoveUp" type="Button" parent="HUD"]
-offset_left = 105.0
-offset_top = 500.0
-offset_right = 205.0
-offset_bottom = 570.0
-text = "▲"
+visible = false
 
 [node name="MoveDown" type="Button" parent="HUD"]
-offset_left = 105.0
-offset_top = 620.0
-offset_right = 205.0
-offset_bottom = 690.0
-text = "▼"
+visible = false
 
 [node name="MoveLeft" type="Button" parent="HUD"]
-offset_left = 20.0
-offset_top = 560.0
-offset_right = 120.0
-offset_bottom = 630.0
-text = "◀"
+visible = false
 
 [node name="MoveRight" type="Button" parent="HUD"]
-offset_left = 190.0
-offset_top = 560.0
-offset_right = 290.0
-offset_bottom = 630.0
-text = "▶"
+visible = false
