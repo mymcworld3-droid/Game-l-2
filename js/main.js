@@ -16,32 +16,45 @@ let playerX = window.innerWidth / 2;
 let playerY = window.innerHeight / 2;
 let lastFrameTime = performance.now();
 let facingDirection = "right";
+let weaponAngle = 0;
+let attackAnimating = false;
 const MOVE_SPEED_UNIT = 0.1;
+const WEAPON_FACE_OFFSET = -Math.PI / 4; // 小刀面朝方向額外向上 45°
+const ATTACK_ORBIT_ROTATION = Math.PI / 4; // 攻擊時武器繞玩家向下 45°
 
 function updatePlayer() {
     player.style.left = `${playerX}px`;
     player.style.top = `${playerY}px`;
 }
 
-// 武器方向跟隨搖桿：使用完整 360° 方向。
-// 角色本體仍只左右翻轉，不會跟著旋轉。
-function setWeaponDirection(angle) {
-    knife.style.transform = `translateY(-50%) rotate(${angle}rad)`;
-    attackRange.style.transform = `translateY(-50%) rotate(${angle}rad)`;
+// 搖桿方向是「武器繞玩家的軌道方向」。
+// 小刀本身的面朝方向，再額外向上偏 45°。
+function setWeaponDirection(joystickAngle) {
+    weaponAngle = joystickAngle;
+    if (attackAnimating) return;
+    applyWeaponTransform(weaponAngle);
+}
+
+function applyWeaponTransform(orbitAngle) {
+    // 旋轉中心在玩家；小刀圖形本身再額外偏轉 -45°。
+    const bladeAngle = orbitAngle + WEAPON_FACE_OFFSET;
+    knife.style.transformOrigin = "0 50%";
+    knife.style.transform = `translateY(-50%) rotate(${bladeAngle}rad)`;
+    attackRange.style.transformOrigin = "0 50%";
+    attackRange.style.transform = `translateY(-50%) rotate(${orbitAngle}rad)`;
 }
 
 function setFacingDirection(direction) {
     facingDirection = direction;
-    if (direction === "left") {
-        player.style.transform = "translate(-50%, -50%) scaleX(-1)";
-    } else {
-        player.style.transform = "translate(-50%, -50%) scaleX(1)";
-    }
+    player.style.transform = direction === "left"
+        ? "translate(-50%, -50%) scaleX(-1)"
+        : "translate(-50%, -50%) scaleX(1)";
 }
 
 function faceTarget(targetX, targetY = playerY) {
+    const angle = Math.atan2(targetY - playerY, targetX - playerX);
     setFacingDirection(targetX < playerX ? "left" : "right");
-    setWeaponDirection(Math.atan2(targetY - playerY, targetX - playerX));
+    setWeaponDirection(angle);
 }
 
 const dummyX = () => window.innerWidth * 0.70;
@@ -89,8 +102,8 @@ function moveJoystick(x, y) {
     joystickX = dx / maxDistance;
     joystickY = dy / maxDistance;
 
-    // 只要搖桿有輸入，武器就同步指向搖桿方向。
-    if (distance > 0.05) {
+    // 攻擊期間完全鎖定武器方向，不受搖桿影響。
+    if (distance > 0.05 && !attackAnimating) {
         const angle = Math.atan2(joystickY, joystickX);
         setWeaponDirection(angle);
         if (joystickX < -0.05) setFacingDirection("left");
@@ -192,27 +205,41 @@ function findAttackTarget() {
 }
 
 let lastAttackTime = -Infinity;
-let knifeAnimating = false;
 function attack() {
     const now = performance.now();
-    if (now - lastAttackTime < defaultWeapon.attackCooldown) return;
+    if (now - lastAttackTime < defaultWeapon.attackCooldown || attackAnimating) return;
     lastAttackTime = now;
+
     const target = findAttackTarget();
-    // 普攻方向優先於搖桿，找到目標時自動面向目標。
-    if (target) faceTarget(target.x, target.y);
-
-    if (!knifeAnimating) {
-        knifeAnimating = true;
-        knife.classList.add("knife-swing");
-        setTimeout(() => {
-            knife.classList.remove("knife-swing");
-            knifeAnimating = false;
-            // 沒有目標時，攻擊結束後仍保持最後搖桿方向；有目標則回到目標方向。
-            if (target) faceTarget(target.x, target.y);
-        }, 160);
+    // 普攻找到目標時，先取得目標方向；之後整個攻擊期間完全不受搖桿影響。
+    if (target) {
+        const targetAngle = Math.atan2(target.y - playerY, target.x - playerX);
+        setFacingDirection(target.x < playerX ? "left" : "right");
+        weaponAngle = targetAngle;
     }
-    if (!target) return;
 
+    attackAnimating = true;
+    // 攻擊時：武器繞玩家向下 45°，同時小刀本身再向下 45°。
+    // 因此攻擊最終位置 = 原本武器軌道角度 +45°，刀刃朝向再額外 +45°。
+    const attackOrbitAngle = weaponAngle + ATTACK_ORBIT_ROTATION;
+    const attackBladeAngle = attackOrbitAngle + WEAPON_FACE_OFFSET + ATTACK_ORBIT_ROTATION;
+    knife.style.transformOrigin = "0 50%";
+    knife.style.transform = `translateY(-50%) rotate(${attackBladeAngle}rad)`;
+    attackRange.style.transformOrigin = "0 50%";
+    attackRange.style.transform = `translateY(-50%) rotate(${attackOrbitAngle}rad)`;
+
+    knife.classList.remove("knife-swing");
+    void knife.offsetWidth;
+    knife.classList.add("knife-swing");
+
+    setTimeout(() => {
+        knife.classList.remove("knife-swing");
+        attackAnimating = false;
+        // 恢復到攻擊前的搖桿/目標方向，不會把攻擊期間的搖桿輸入帶進來。
+        applyWeaponTransform(weaponAngle);
+    }, 160);
+
+    if (!target) return;
     const damage = Math.max(1, playerStats.attack - dummyStats.defense);
     dummyStats.health = Math.max(0, dummyStats.health - damage);
     updateDummyHealth();
