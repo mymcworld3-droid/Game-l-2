@@ -44,17 +44,55 @@ body {
     z-index: 10;
 }
 
-/* 普攻範圍 */
+/* 默認小刀：70 長、46 寬，會依玩家面向旋轉 */
+#knife {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 70px;
+    height: 46px;
+    transform-origin: 0 50%;
+    transform: translateY(-50%) rotate(0deg);
+    pointer-events: none;
+    z-index: 12;
+}
+
+#knife::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 16px;
+    width: 22px;
+    height: 14px;
+    border-radius: 4px;
+    background: #4a2b1a;
+    border: 2px solid #24150d;
+}
+
+#knife::after {
+    content: "";
+    position: absolute;
+    left: 25px;
+    top: 11px;
+    width: 43px;
+    height: 24px;
+    background: #d9e1e8;
+    border: 2px solid #555;
+    clip-path: polygon(0 15%, 72% 15%, 100% 50%, 72% 85%, 0 85%);
+    filter: drop-shadow(1px 2px 1px rgba(0,0,0,.45));
+}
+
+/* 小刀攻擊判定範圍：70 長 x 46 寬 */
 #attack-range {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 300px;
-    height: 300px;
-    transform: translate(-50%, -50%);
-    border: 2px solid rgba(255, 255, 255, 0.28);
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.035);
+    width: 70px;
+    height: 46px;
+    transform: translateY(-50%);
+    transform-origin: 0 50%;
+    border: 1px solid rgba(255, 230, 80, 0.55);
+    background: rgba(255, 230, 80, 0.08);
     pointer-events: none;
     z-index: -1;
 }
@@ -140,14 +178,8 @@ body {
 }
 
 @keyframes damage-float {
-    0% {
-        opacity: 1;
-        transform: translate(-50%, 0) scale(1);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, -65px) scale(1.15);
-    }
+    0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -65px) scale(1.15); }
 }
 
 /* 自由虛擬搖桿：只在左下 1/4 啟動 */
@@ -171,9 +203,7 @@ body {
     z-index: 20;
 }
 
-#joystick.active {
-    opacity: 1;
-}
+#joystick.active { opacity: 1; }
 
 #joystick-knob {
     width: 70px;
@@ -207,16 +237,9 @@ body {
     z-index: 40;
 }
 
-#attack-button:active {
-    transform: scale(0.88);
-}
-
-#attack-button.cooldown {
-    opacity: 0.55;
-}
+#attack-button:active { transform: scale(0.88); }
+#attack-button.cooldown { opacity: 0.55; }
 
 @media (orientation: landscape) {
-    #attack-button {
-        bottom: 80px;
-    }
+    #attack-button { bottom: 80px; }
 }
