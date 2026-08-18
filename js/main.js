@@ -18,29 +18,54 @@ function updatePlayer() {
 }
 
 // =========================
-// 虛擬搖桿
+// 自由虛擬搖桿
+// 只有左下 1/4 區域可以啟動
+// 第一次碰觸的位置就是搖桿中心
 // =========================
 
 let joystickActive = false;
-
 let joystickX = 0;
 let joystickY = 0;
+let joystickPointerId = null;
 
-const joystickRadius = 70;
+const joystickSize = 140;
+const joystickRadius = joystickSize / 2;
 const knobRadius = 35;
+const maxDistance = joystickRadius - knobRadius;
+
+function isInLeftBottomQuarter(clientX, clientY) {
+    return (
+        clientX <= window.innerWidth / 2 &&
+        clientY >= window.innerHeight / 2
+    );
+}
+
+function startJoystick(clientX, clientY, pointerId = null) {
+    if (!isInLeftBottomQuarter(clientX, clientY)) return false;
+
+    joystickActive = true;
+    joystickPointerId = pointerId;
+
+    // 把搖桿中心放在玩家第一次觸碰的位置
+    joystick.style.left = `${clientX}px`;
+    joystick.style.top = `${clientY}px`;
+    joystick.classList.add("active");
+
+    moveJoystick(clientX, clientY);
+
+    return true;
+}
 
 function moveJoystick(clientX, clientY) {
-    const rect = joystick.getBoundingClientRect();
+    if (!joystickActive) return;
 
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+    const centerX = parseFloat(joystick.style.left);
+    const centerY = parseFloat(joystick.style.top);
 
     let dx = clientX - centerX;
     let dy = clientY - centerY;
 
     const distance = Math.sqrt(dx * dx + dy * dy);
-
-    const maxDistance = joystickRadius - knobRadius;
 
     if (distance > maxDistance) {
         dx = (dx / distance) * maxDistance;
@@ -56,58 +81,71 @@ function moveJoystick(clientX, clientY) {
 
 function resetJoystick() {
     joystickActive = false;
+    joystickPointerId = null;
 
     joystickX = 0;
     joystickY = 0;
 
-    knob.style.transform =
-        "translate(-50%, -50%)";
+    knob.style.transform = "translate(-50%, -50%)";
+    joystick.classList.remove("active");
 }
 
 // =========================
 // Touch
 // =========================
 
-joystick.addEventListener("touchstart", (event) => {
-    event.preventDefault();
+document.addEventListener("touchstart", (event) => {
+    // 不讓攻擊按鍵搶走搖桿觸控
+    if (event.target === attackButton) return;
 
-    joystickActive = true;
+    if (joystickActive) return;
 
-    const touch = event.touches[0];
+    const touch = event.changedTouches[0];
 
-    moveJoystick(
+    startJoystick(
         touch.clientX,
-        touch.clientY
+        touch.clientY,
+        touch.identifier
     );
-});
+}, { passive: false });
 
-joystick.addEventListener("touchmove", (event) => {
-    event.preventDefault();
-
+document.addEventListener("touchmove", (event) => {
     if (!joystickActive) return;
 
-    const touch = event.touches[0];
+    for (const touch of event.changedTouches) {
+        if (touch.identifier === joystickPointerId) {
+            event.preventDefault();
 
-    moveJoystick(
-        touch.clientX,
-        touch.clientY
-    );
-});
+            moveJoystick(
+                touch.clientX,
+                touch.clientY
+            );
 
-joystick.addEventListener("touchend", (event) => {
-    event.preventDefault();
+            break;
+        }
+    }
+}, { passive: false });
 
-    resetJoystick();
-});
+document.addEventListener("touchend", (event) => {
+    if (!joystickActive) return;
+
+    for (const touch of event.changedTouches) {
+        if (touch.identifier === joystickPointerId) {
+            resetJoystick();
+            break;
+        }
+    }
+}, { passive: false });
 
 // =========================
 // 滑鼠測試
 // =========================
 
-joystick.addEventListener("mousedown", (event) => {
-    joystickActive = true;
+document.addEventListener("mousedown", (event) => {
+    if (event.target === attackButton) return;
+    if (joystickActive) return;
 
-    moveJoystick(
+    startJoystick(
         event.clientX,
         event.clientY
     );
@@ -123,7 +161,9 @@ document.addEventListener("mousemove", (event) => {
 });
 
 document.addEventListener("mouseup", () => {
-    resetJoystick();
+    if (joystickActive) {
+        resetJoystick();
+    }
 });
 
 // =========================
@@ -131,9 +171,7 @@ document.addEventListener("mouseup", () => {
 // =========================
 
 function gameLoop() {
-
     if (joystickActive) {
-
         playerX += joystickX * playerSpeed;
         playerY += joystickY * playerSpeed;
 
@@ -169,7 +207,6 @@ function gameLoop() {
 function attack() {
     console.log("普攻!");
 
-    // 暫時讓玩家變大，模擬攻擊
     player.style.transform =
         "translate(-50%, -50%) scale(1.3)";
 
@@ -181,12 +218,14 @@ function attack() {
 
 attackButton.addEventListener("touchstart", (event) => {
     event.preventDefault();
+    event.stopPropagation();
 
     attack();
-});
+}, { passive: false });
 
 attackButton.addEventListener("mousedown", (event) => {
     event.preventDefault();
+    event.stopPropagation();
 
     attack();
 });
