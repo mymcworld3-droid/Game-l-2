@@ -35,10 +35,13 @@ function setWeaponDirection(joystickAngle) {
 }
 
 function applyWeaponTransform(orbitAngle) {
-    // 白色方塊以玩家中心為旋轉中心；向左時直接用左側的軌道角度，
-    // 不再使用 scaleY(-1)，避免把物件翻到錯誤的垂直方向。
+    // 把手持物當成單純的白色方塊：搖桿方向不變，
+    // 只依照玩家朝向補正視覺角度。
     const correctedOrbit = orbitAngle;
-    const bladeAngle = correctedOrbit + WEAPON_FACE_OFFSET;
+    const bladeOffset = facingDirection === "left"
+        ? Math.PI / 4
+        : WEAPON_FACE_OFFSET;
+    const bladeAngle = correctedOrbit + bladeOffset;
 
     knife.style.left = `${playerX}px`;
     knife.style.top = `${playerY}px`;
@@ -59,9 +62,8 @@ function setFacingDirection(direction) {
     player.style.transform =
         `translate(-50%, -50%) scaleX(${flip})`;
 
-    // 手持物跟著玩家水平翻轉
-    knife.style.scale = `${flip} 1`;
-    attackRange.style.scale = `${flip} 1`;
+    // 白色方塊不再另外使用 scaleX 翻轉，避免旋轉角度被鏡像。
+    // 實際的左右視覺角度由 applyWeaponTransform() 補正。
 }
 
 function faceTarget(targetX, targetY = playerY) {
@@ -232,7 +234,10 @@ function attack() {
 
     attackAnimating = true;
     const attackOrbitAngle = weaponAngle + ATTACK_ORBIT_ROTATION;
-    const attackBladeAngle = attackOrbitAngle + WEAPON_FACE_OFFSET + ATTACK_ORBIT_ROTATION;
+    const attackFaceOffset = facingDirection === "left"
+        ? Math.PI / 4
+        : WEAPON_FACE_OFFSET;
+    const attackBladeAngle = attackOrbitAngle + attackFaceOffset + ATTACK_ORBIT_ROTATION;
 
     knife.style.left = `${playerX}px`;
     knife.style.top = `${playerY}px`;
