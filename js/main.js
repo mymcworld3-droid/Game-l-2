@@ -10,15 +10,9 @@ const dummyHpBar = document.getElementById("dummy-hp-bar");
 const dummyHpText = document.getElementById("dummy-hp-text");
 const gameWorld = document.getElementById("game-world");
 
-// =========================
-// 玩家座標 / 移動
-// =========================
-
 let playerX = window.innerWidth / 2;
 let playerY = window.innerHeight / 2;
 let lastFrameTime = performance.now();
-
-// 玩家面向角度：0 = 向右
 let playerFacingAngle = 0;
 
 function updatePlayer() {
@@ -32,10 +26,6 @@ function setPlayerFacing(angle) {
     attackRange.style.transform = `translateY(-50%) rotate(${angle}rad)`;
 }
 
-// =========================
-// Dummy 座標
-// =========================
-
 const dummyX = () => window.innerWidth * 0.70;
 const dummyY = () => window.innerHeight * 0.50;
 
@@ -45,17 +35,14 @@ function updateDummyPosition() {
 }
 
 // =========================
-// 自由虛擬搖桿
-// 只有左下 1/4 區域可以啟動
+// 自由虛擬搖桿：只在左下 1/4 啟動
 // =========================
-
 let joystickActive = false;
 let joystickX = 0;
 let joystickY = 0;
 let joystickPointerId = null;
 
-const joystickSize = 140;
-const joystickRadius = joystickSize / 2;
+const joystickRadius = 70;
 const knobRadius = 35;
 const maxDistance = joystickRadius - knobRadius;
 
@@ -104,8 +91,7 @@ function resetJoystick() {
 }
 
 document.addEventListener("touchstart", (event) => {
-    if (event.target === attackButton) return;
-    if (joystickActive) return;
+    if (event.target === attackButton || joystickActive) return;
     const touch = event.changedTouches[0];
     startJoystick(touch.clientX, touch.clientY, touch.identifier);
 }, { passive: false });
@@ -132,14 +118,12 @@ document.addEventListener("touchend", (event) => {
 }, { passive: false });
 
 document.addEventListener("mousedown", (event) => {
-    if (event.target === attackButton) return;
-    if (joystickActive) return;
+    if (event.target === attackButton || joystickActive) return;
     startJoystick(event.clientX, event.clientY);
 });
 
 document.addEventListener("mousemove", (event) => {
-    if (!joystickActive) return;
-    moveJoystick(event.clientX, event.clientY);
+    if (joystickActive) moveJoystick(event.clientX, event.clientY);
 });
 
 document.addEventListener("mouseup", () => {
@@ -148,9 +132,7 @@ document.addEventListener("mouseup", () => {
 
 // =========================
 // 玩家移動
-// moveSpeed = 650 px / 秒
 // =========================
-
 function gameLoop(now) {
     const deltaTime = Math.min((now - lastFrameTime) / 1000, 0.05);
     lastFrameTime = now;
@@ -159,11 +141,9 @@ function gameLoop(now) {
         playerX += joystickX * playerStats.moveSpeed * deltaTime;
         playerY += joystickY * playerStats.moveSpeed * deltaTime;
 
-        const halfPlayer = 25;
-        playerX = Math.max(halfPlayer, Math.min(window.innerWidth - halfPlayer, playerX));
-        playerY = Math.max(halfPlayer, Math.min(window.innerHeight - halfPlayer, playerY));
+        playerX = Math.max(25, Math.min(window.innerWidth - 25, playerX));
+        playerY = Math.max(25, Math.min(window.innerHeight - 25, playerY));
 
-        // 移動時，角色自然面向移動方向
         if (Math.abs(joystickX) > 0.05 || Math.abs(joystickY) > 0.05) {
             setPlayerFacing(Math.atan2(joystickY, joystickX));
         }
@@ -174,19 +154,11 @@ function gameLoop(now) {
     requestAnimationFrame(gameLoop);
 }
 
-// =========================
-// Dummy 血條
-// =========================
-
 function updateDummyHealth() {
     const percentage = Math.max(0, dummyStats.health / dummyStats.maxHealth) * 100;
     dummyHpBar.style.width = `${percentage}%`;
     dummyHpText.textContent = `${dummyStats.health} / ${dummyStats.maxHealth}`;
 }
-
-// =========================
-// 傷害飄字
-// =========================
 
 function showDamageNumber(damage) {
     const number = document.createElement("div");
@@ -195,41 +167,20 @@ function showDamageNumber(damage) {
     number.style.left = `${dummyX()}px`;
     number.style.top = `${dummyY() - 65}px`;
     gameWorld.appendChild(number);
-
     setTimeout(() => number.remove(), 700);
 }
 
 // =========================
-// 小刀攻擊判定
-// 70 長 x 46 寬的矩形，會跟著玩家面向旋轉
+// 小刀攻擊距離
+// 規則：只看「玩家中心到目標中心」的距離 <= 70
+// 不再要求目標位於長方形內，也不受玩家目前面向限制
 // =========================
-
 function isTargetInKnifeRange(targetX, targetY) {
     const dx = targetX - playerX;
     const dy = targetY - playerY;
-
-    // 將目標座標轉換到「小刀朝向的本地座標」
-    const cos = Math.cos(playerFacingAngle);
-    const sin = Math.sin(playerFacingAngle);
-
-    const localX = dx * cos + dy * sin;
-    const localY = -dx * sin + dy * cos;
-
-    // 小刀從玩家中心向前延伸 70，寬度 46
-    const halfPlayer = 25;
-    const halfWidth = defaultWeapon.attackWidth / 2;
-
-    return (
-        localX >= halfPlayer &&
-        localX <= halfPlayer + defaultWeapon.attackRange &&
-        Math.abs(localY) <= halfWidth + 36
-    );
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return distance <= defaultWeapon.attackRange;
 }
-
-// =========================
-// 自動選取攻擊目標
-// 現階段只有 Dummy，因此直接選 Dummy
-// =========================
 
 function findAttackTarget() {
     if (dummyStats.health <= 0) return null;
@@ -245,44 +196,34 @@ function findAttackTarget() {
     return null;
 }
 
-// =========================
-// 攻擊冷卻 + 自動面向 + 小刀攻擊
-// =========================
-
 let lastAttackTime = -Infinity;
 let knifeAnimating = false;
 
 function attack() {
     const now = performance.now();
 
-    if (now - lastAttackTime < defaultWeapon.attackCooldown) {
-        return;
-    }
-
+    if (now - lastAttackTime < defaultWeapon.attackCooldown) return;
     lastAttackTime = now;
 
     const target = findAttackTarget();
 
-    // 有目標：自動面向目標
+    // 只要目標在 70 距離內，就自動面向目標
     if (target) {
         const angle = Math.atan2(target.y - playerY, target.x - playerX);
         setPlayerFacing(angle);
     }
 
-    // 小刀揮擊動畫
     if (!knifeAnimating) {
         knifeAnimating = true;
         knife.classList.add("knife-swing");
-
         setTimeout(() => {
             knife.classList.remove("knife-swing");
             knifeAnimating = false;
         }, 160);
     }
 
-    // 沒有目標或不在矩形範圍內：揮空
     if (!target) {
-        console.log("小刀揮空：攻擊範圍內沒有目標");
+        console.log("小刀揮空：70 距離內沒有目標");
         return;
     }
 
@@ -296,8 +237,6 @@ function attack() {
     setTimeout(() => {
         dummyBody.style.transform = "translateX(-50%) scale(1)";
     }, 100);
-
-    console.log(`小刀命中 Dummy，造成 ${damage} 傷害，HP：${dummyStats.health}/${dummyStats.maxHealth}`);
 
     if (dummyStats.health <= 0) {
         dummyBody.textContent = "DEAD";
@@ -323,10 +262,6 @@ window.addEventListener("resize", () => {
     updatePlayer();
     updateDummyPosition();
 });
-
-// =========================
-// 開始遊戲
-// =========================
 
 updatePlayer();
 updateDummyPosition();
