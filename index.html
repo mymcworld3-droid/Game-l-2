@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>史萊姆 Sprite 素材生成器 (右鍵另存版)</title>
+    <title>利姆路 Sprite 素材生成器 (高畫質放大版)</title>
     <style>
         body {
             background-color: #263746; 
@@ -23,13 +23,14 @@
         img {
             border: 1px dashed rgba(255,255,255,0.4);
             margin-right: 20px;
+            background: rgba(255,255,255,0.05); /* 稍微打光讓藍色更明顯 */
         }
         /* 隱藏原本的 Canvas，只顯示轉換後的圖片 */
         canvas {
             display: none;
         }
         p.hint {
-            color: #f39c12;
+            color: #4ade80;
             font-weight: bold;
             margin: 5px 0 0 0;
         }
@@ -37,20 +38,20 @@
 </head>
 <body>
 
-    <h1>🛠️ 史萊姆 Sprite 素材匯出工具</h1>
-    <p>因為部分瀏覽器會阻擋自動下載，請直接在下方的圖案上<b>「按滑鼠右鍵」</b>或<b>「手機長按」</b>，選擇<b>「另存圖片」</b>。</p>
+    <h1>💧 史萊姆 Sprite 素材匯出 (利姆路高畫質版)</h1>
+    <p>所有素材已放大 <b>4倍</b> 確保高畫質。請在下方圖案上<b>「按滑鼠右鍵」</b>或<b>「手機長按」</b>，選擇<b>「另存圖片」</b>。</p>
 
     <div class="container">
-        <canvas id="canvasBody" width="70" height="56"></canvas>
+        <canvas id="canvasBody" width="280" height="224"></canvas>
         <img id="imgBody" alt="史萊姆身體" />
         <div>
-            <h3>1. 史萊姆身體</h3>
+            <h3>1. 史萊姆身體 (附帶腮紅)</h3>
             <p class="hint">👉 右鍵另存為 slime_body.png</p>
         </div>
     </div>
 
     <div class="container">
-        <canvas id="canvasEye" width="12" height="12"></canvas>
+        <canvas id="canvasEye" width="48" height="48"></canvas>
         <img id="imgEye" alt="史萊姆眼睛" />
         <div>
             <h3>2. 眼睛</h3>
@@ -59,7 +60,7 @@
     </div>
 
     <div class="container">
-        <canvas id="canvasHand" width="20" height="20"></canvas>
+        <canvas id="canvasHand" width="80" height="80"></canvas>
         <img id="imgHand" alt="史萊姆手部" />
         <div>
             <h3>3. 手部</h3>
@@ -68,39 +69,60 @@
     </div>
 
     <script>
-        // 💡 如果你想換成你照片中的「藍色史萊姆」，請把填色改為：
-        // 身體與手 fillStyle: "#5dade2"
-        // 邊框 strokeStyle: "#2874a6"
+        const SCALE = 4; // 放大倍率
 
-        // 1. 繪製身體並轉換成圖片
+        // 1. 繪製身體並轉換成圖片 (藍色 + 腮紅)
         const canvasBody = document.getElementById("canvasBody");
         const ctxBody = canvasBody.getContext("2d");
-        ctxBody.fillStyle = "#4ade80"; 
-        ctxBody.strokeStyle = "#166534"; 
-        ctxBody.lineWidth = 4;
+        const cxBody = canvasBody.width / 2;
+        const cyBody = canvasBody.height / 2;
+
+        ctxBody.fillStyle = "#5dade2";     // 利姆路藍
+        ctxBody.strokeStyle = "#2874a6";   // 深藍邊框
+        ctxBody.lineWidth = 4 * SCALE;     // 邊框也跟著放大
         ctxBody.beginPath();
-        ctxBody.ellipse(35, 28, 31, 24, 0, 0, Math.PI * 2);
+        // 橢圓半徑也乘上 SCALE (原本是 31 和 24)
+        ctxBody.ellipse(cxBody, cyBody, 31 * SCALE, 24 * SCALE, 0, 0, Math.PI * 2);
         ctxBody.fill();
         ctxBody.stroke();
+
+        // 加上可愛的粉紅腮紅
+        ctxBody.fillStyle = "rgba(255, 130, 160, 0.5)"; // 柔和的粉紅色
+        
+        // 左腮紅
+        ctxBody.beginPath();
+        ctxBody.ellipse(cxBody - 18 * SCALE, cyBody + 4 * SCALE, 6 * SCALE, 3 * SCALE, 0, 0, Math.PI * 2);
+        ctxBody.fill();
+        // 右腮紅
+        ctxBody.beginPath();
+        ctxBody.ellipse(cxBody + 18 * SCALE, cyBody + 4 * SCALE, 6 * SCALE, 3 * SCALE, 0, 0, Math.PI * 2);
+        ctxBody.fill();
+
         document.getElementById("imgBody").src = canvasBody.toDataURL("image/png");
 
         // 2. 繪製眼睛並轉換成圖片
         const canvasEye = document.getElementById("canvasEye");
         const ctxEye = canvasEye.getContext("2d");
+        const cxEye = canvasEye.width / 2;
+        const cyEye = canvasEye.height / 2;
+
         ctxEye.fillStyle = "#10251a";
         ctxEye.beginPath();
-        ctxEye.arc(6, 6, 4, 0, Math.PI * 2); 
+        ctxEye.arc(cxEye, cyEye, 4 * SCALE, 0, Math.PI * 2); 
         ctxEye.fill();
         document.getElementById("imgEye").src = canvasEye.toDataURL("image/png");
 
         // 3. 繪製手並轉換成圖片
         const canvasHand = document.getElementById("canvasHand");
         const ctxHand = canvasHand.getContext("2d");
-        ctxHand.fillStyle = "#4ade80";
-        ctxHand.strokeStyle = "#166534";
-        ctxHand.lineWidth = 2;
+        const cxHand = canvasHand.width / 2;
+        const cyHand = canvasHand.height / 2;
+
+        ctxHand.fillStyle = "#5dade2";   // 手部改成藍色
+        ctxHand.strokeStyle = "#2874a6"; // 深藍邊框
+        ctxHand.lineWidth = 2 * SCALE;
         ctxHand.beginPath();
-        ctxHand.arc(10, 10, 6, 0, Math.PI * 2); 
+        ctxHand.arc(cxHand, cyHand, 6 * SCALE, 0, Math.PI * 2); 
         ctxHand.fill();
         ctxHand.stroke();
         document.getElementById("imgHand").src = canvasHand.toDataURL("image/png");
