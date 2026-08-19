@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>史萊姆 Sprite 素材生成器</title>
+    <title>史萊姆 Sprite 素材生成器 (右鍵另存版)</title>
     <style>
         body {
-            background-color: #263746; /* 使用遊戲的深色背景，方便看清楚史萊姆 */
+            background-color: #263746; 
             color: white;
             font-family: system-ui, sans-serif;
             padding: 40px;
@@ -19,122 +19,91 @@
             padding: 20px;
             border-radius: 12px;
         }
-        /* 讓畫布加上虛線框，讓你知道圖片的實際邊界大小 */
-        canvas {
-            border: 1px dashed rgba(255,255,255,0.3);
-            background-color: transparent;
+        /* 替圖片加上虛線外框，方便看清楚邊界 */
+        img {
+            border: 1px dashed rgba(255,255,255,0.4);
             margin-right: 20px;
         }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4ade80;
-            color: #10251a;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
+        /* 隱藏原本的 Canvas，只顯示轉換後的圖片 */
+        canvas {
+            display: none;
         }
-        button:hover {
-            background-color: #22c55e;
+        p.hint {
+            color: #f39c12;
+            font-weight: bold;
+            margin: 5px 0 0 0;
         }
     </style>
 </head>
 <body>
 
     <h1>🛠️ 史萊姆 Sprite 素材匯出工具</h1>
-    <p>這會生成去背的 PNG 圖片。點擊按鈕即可下載，之後可以放入遊戲中使用 ctx.drawImage() 渲染。</p>
+    <p>因為部分瀏覽器會阻擋自動下載，請直接在下方的圖案上<b>「按滑鼠右鍵」</b>或<b>「手機長按」</b>，選擇<b>「另存圖片」</b>。</p>
 
     <div class="container">
         <canvas id="canvasBody" width="70" height="56"></canvas>
+        <img id="imgBody" alt="史萊姆身體" />
         <div>
-            <h3>1. 史萊姆身體 (slime_body.png)</h3>
-            <button onclick="downloadImage('canvasBody', 'slime_body.png')">📥 下載身體</button>
+            <h3>1. 史萊姆身體</h3>
+            <p class="hint">👉 右鍵另存為 slime_body.png</p>
         </div>
     </div>
 
     <div class="container">
         <canvas id="canvasEye" width="12" height="12"></canvas>
+        <img id="imgEye" alt="史萊姆眼睛" />
         <div>
-            <h3>2. 眼睛 (slime_eye.png)</h3>
-            <button onclick="downloadImage('canvasEye', 'slime_eye.png')">📥 下載眼睛</button>
+            <h3>2. 眼睛</h3>
+            <p class="hint">👉 右鍵另存為 slime_eye.png</p>
         </div>
     </div>
 
     <div class="container">
         <canvas id="canvasHand" width="20" height="20"></canvas>
+        <img id="imgHand" alt="史萊姆手部" />
         <div>
-            <h3>3. 手部 (slime_hand.png)</h3>
-            <button onclick="downloadImage('canvasHand', 'slime_hand.png')">📥 下載手部</button>
+            <h3>3. 手部</h3>
+            <p class="hint">👉 右鍵另存為 slime_hand.png</p>
         </div>
     </div>
 
     <script>
-        // 1. 繪製身體
-        function drawBody() {
-            const canvas = document.getElementById("canvasBody");
-            const ctx = canvas.getContext("2d");
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
+        // 💡 如果你想換成你照片中的「藍色史萊姆」，請把填色改為：
+        // 身體與手 fillStyle: "#5dade2"
+        // 邊框 strokeStyle: "#2874a6"
 
-            ctx.fillStyle = "#4ade80";
-            ctx.strokeStyle = "#166534";
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            // 畫出半徑為 31 與 24 的橢圓
-            ctx.ellipse(cx, cy, 31, 24, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-        }
+        // 1. 繪製身體並轉換成圖片
+        const canvasBody = document.getElementById("canvasBody");
+        const ctxBody = canvasBody.getContext("2d");
+        ctxBody.fillStyle = "#4ade80"; 
+        ctxBody.strokeStyle = "#166534"; 
+        ctxBody.lineWidth = 4;
+        ctxBody.beginPath();
+        ctxBody.ellipse(35, 28, 31, 24, 0, 0, Math.PI * 2);
+        ctxBody.fill();
+        ctxBody.stroke();
+        document.getElementById("imgBody").src = canvasBody.toDataURL("image/png");
 
-        // 2. 繪製眼睛
-        function drawEye() {
-            const canvas = document.getElementById("canvasEye");
-            const ctx = canvas.getContext("2d");
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
+        // 2. 繪製眼睛並轉換成圖片
+        const canvasEye = document.getElementById("canvasEye");
+        const ctxEye = canvasEye.getContext("2d");
+        ctxEye.fillStyle = "#10251a";
+        ctxEye.beginPath();
+        ctxEye.arc(6, 6, 4, 0, Math.PI * 2); 
+        ctxEye.fill();
+        document.getElementById("imgEye").src = canvasEye.toDataURL("image/png");
 
-            ctx.fillStyle = "#10251a";
-            ctx.beginPath();
-            ctx.arc(cx, cy, 4, 0, Math.PI * 2); // 半徑為 4 的黑色圓形
-            ctx.fill();
-        }
-
-        // 3. 繪製手
-        function drawHand() {
-            const canvas = document.getElementById("canvasHand");
-            const ctx = canvas.getContext("2d");
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-
-            ctx.fillStyle = "#4ade80";
-            ctx.strokeStyle = "#166534";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(cx, cy, 6, 0, Math.PI * 2); // 半徑為 6 的綠色圓形
-            ctx.fill();
-            ctx.stroke();
-        }
-
-        // 啟動繪製
-        drawBody();
-        drawEye();
-        drawHand();
-
-        // 下載圖片的功能
-        function downloadImage(canvasId, filename) {
-            const canvas = document.getElementById(canvasId);
-            // 將畫布內容轉換為 base64 編碼的 PNG 圖片網址
-            const dataURL = canvas.toDataURL("image/png");
-            
-            // 動態創建一個 <a> 標籤來觸發下載
-            const link = document.createElement("a");
-            link.href = dataURL;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+        // 3. 繪製手並轉換成圖片
+        const canvasHand = document.getElementById("canvasHand");
+        const ctxHand = canvasHand.getContext("2d");
+        ctxHand.fillStyle = "#4ade80";
+        ctxHand.strokeStyle = "#166534";
+        ctxHand.lineWidth = 2;
+        ctxHand.beginPath();
+        ctxHand.arc(10, 10, 6, 0, Math.PI * 2); 
+        ctxHand.fill();
+        ctxHand.stroke();
+        document.getElementById("imgHand").src = canvasHand.toDataURL("image/png");
     </script>
 
 </body>
